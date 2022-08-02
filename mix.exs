@@ -22,7 +22,7 @@ defmodule Logzio.MixProject do
   defp deps do
     [
       {:httpoison, "~> 1.8"},
-      {:jason, "~> 1.3"}
+      {:jason, "~> 1.0"}
     ]
   end
 end
