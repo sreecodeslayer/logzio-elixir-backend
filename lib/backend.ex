@@ -44,7 +44,7 @@ defmodule Logzio.Backend do
 
   # Our buffer is full, let's push them to LogzIO
   defp push(%{buffer_size: size} = state, payload) when size === @buffer_limit do
-    Logzio.send(state[:buffer])
+    Task.start(fn -> Logzio.send(state[:buffer]) end)
     %{state | buffer: [payload], buffer_size: 1}
   end
 
