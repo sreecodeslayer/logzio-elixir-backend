@@ -6,17 +6,28 @@ defmodule Logzio.Backend do
     {:ok, configure(:logzio, [])}
   end
 
-  # Handle the flush event
-  def handle_event(:flush, state) do
-    {:ok, state}
-  end
-
+  @impl true
   def handle_call({:configure, opts}, %{name: name} = state) do
     {:ok, :ok, configure(name, opts, state)}
   end
 
+  # Handle the flush event
+  @impl true
+  def handle_event(:flush, state) do
+    {:ok, state}
+  end
+
+  @impl true
+  def handle_event({_, gl, _}, state) when node(gl) != node() do
+    {:ok, state}
+  end
+
+  @impl true
   def handle_event({lvl, _gl, {Logger, msg, ts, metadata}}, state) do
-    Logzio.Formatter.format(lvl, msg, ts, metadata) |> IO.puts()
+    if log_level_matches?(lvl, state.level) do
+      Logzio.Formatter.format(lvl, msg, ts, metadata)
+    end
+
     {:ok, state}
   end
 
@@ -30,4 +41,7 @@ defmodule Logzio.Backend do
   end
 
   defp configure(_name, _opts, state), do: state
+
+  defp log_level_matches?(_lvl, nil), do: true
+  defp log_level_matches?(lvl, min), do: Logger.compare_levels(lvl, min) != :lt
 end
