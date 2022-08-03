@@ -2,7 +2,9 @@ defmodule Logzio do
   @logzio_type "http-bulk"
 
   def send(messages) do
-    case HTTPoison.post(url(), messages, default_headers()) do
+    json_lines = Enum.join(messages, "\n")
+
+    case HTTPoison.post(url(), json_lines, default_headers()) do
       {:ok, %HTTPoison.Response{status_code: code, body: body}} ->
         unless code in 200..299 do
           IO.warn(
