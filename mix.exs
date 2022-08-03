@@ -7,7 +7,11 @@ defmodule Logzio.MixProject do
       version: "0.1.0",
       elixir: "~> 1.12",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      description: description(),
+      source_url: "https://github.com/sreecodeslayer/logzio-elixir-backend",
+      name: "Logzio",
+      package: package()
     ]
   end
 
@@ -23,6 +27,20 @@ defmodule Logzio.MixProject do
     [
       {:httpoison, "~> 1.8"},
       {:jason, "~> 1.0"}
+    ]
+  end
+
+  defp description do
+    "Elixir logging backend that sends your logs to Logz.io using the https bulk API"
+  end
+
+  defp package do
+    [
+      # These are the default files included in the package
+      files: ~w(lib priv .formatter.exs mix.exs README* readme* LICENSE*
+                license* CHANGELOG* changelog* src),
+      licenses: [" LGPL-2.1-only"],
+      links: %{"GitHub" => "https://github.com/sreecodeslayer/logzio-elixir-backend"}
     ]
   end
 end
