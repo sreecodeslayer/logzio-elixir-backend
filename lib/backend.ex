@@ -1,7 +1,7 @@
 defmodule Logzio.Backend do
   @behaviour :gen_event
 
-  @buffer_limit 25
+  @buffer_limit 10
 
   @impl true
   def init({__MODULE__, :logzio}) do
@@ -16,7 +16,8 @@ defmodule Logzio.Backend do
   # Handle the flush event
   @impl true
   def handle_event(:flush, state) do
-    {:ok, state}
+    do_push(state[:buffer])
+    {:ok, %{state | buffer: [], buffer_size: 0}}
   end
 
   @impl true
@@ -28,13 +29,20 @@ defmodule Logzio.Backend do
   def handle_event({lvl, _gl, {Logger, msg, ts, metadata}}, state) do
     updated_state =
       if log_level_matches?(lvl, state.level) do
-        payload = Logzio.Formatter.format(lvl, msg, ts, metadata)
-        push(state, payload)
+        json_line = Logzio.Formatter.format(lvl, msg, ts, metadata)
+        push(state, json_line)
       else
         state
       end
 
     {:ok, updated_state}
+  end
+
+  @impl true
+  def terminate(reason, state) do
+    IO.warn("Terminate LogzIO backend: Reason: #{inspect(reason)}")
+    do_push(state[:buffer])
+    :ok
   end
 
   # We still can hold more logs before sending bulk api request
@@ -44,8 +52,14 @@ defmodule Logzio.Backend do
 
   # Our buffer is full, let's push them to LogzIO
   defp push(%{buffer_size: size} = state, payload) when size === @buffer_limit do
-    Task.start(fn -> Logzio.send(state[:buffer]) end)
+    do_push(state[:buffer])
     %{state | buffer: [payload], buffer_size: 1}
+  end
+
+  defp do_push([]), do: :ok
+
+  defp do_push(payload) do
+    Task.start(fn -> Logzio.send(payload) end)
   end
 
   defp configure(name, []) do
@@ -61,7 +75,7 @@ defmodule Logzio.Backend do
   end
 
   defp configure(_name, [level: new_level], state) do
-    Map.merge(state, %{level: new_level})
+    %{state | level: new_level}
   end
 
   defp configure(_name, _opts, state), do: state
